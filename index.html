@@ -521,6 +521,7 @@ function loadDB() {
 /* ═══════════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════════ */
+const esc = s => !s ? '' : String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
 const fmt = n => (isNaN(Number(n)) ? 0 : Number(n)).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const sgn = n => n >= 0 ? '+' : '';
 const today = () => new Date().toISOString().split('T')[0];
@@ -779,8 +780,8 @@ function buildTxTable(list, withActions) {
     <thead><tr><th>Date</th><th>Description</th><th>Catégorie</th><th>Type</th><th>Montant</th><th>Statut</th>${withActions?'<th>Actions</th>':''}</tr></thead>
     <tbody>${list.map(t=>`<tr>
       <td style="color:var(--tl);font-size:11.5px;white-space:nowrap;">${t.date}</td>
-      <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc||'—'}</td>
-      <td><span class="tag" style="background:${getCatColor(t.cat)}22;color:${getCatColor(t.cat)}">${t.cat}</span></td>
+      <td style="font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.desc)||'—'}</td>
+      <td><span class="tag" style="background:${getCatColor(t.cat)}22;color:${getCatColor(t.cat)}">${esc(t.cat)}</span></td>
       <td><span class="type-badge ${t.scope==='perso'?'type-perso':'type-pro'}">${t.scope==='perso'?'🏠 Perso':'💼 Pro'}</span></td>
       <td class="${t.type==='expense'?'an':'ap'}" style="white-space:nowrap;">${t.type==='expense'?'-':'+'}${fmt(Math.abs(t.amount))} €</td>
       <td><span class="st ${stCls(t.status)}">${stLbl(t.status)}</span></td>
@@ -910,7 +911,7 @@ function renderResources() {
   document.getElementById('res-cnt').textContent=allYearRes.length+' source(s) cette année';
   document.getElementById('res-list').innerHTML=allYearRes.length
     ? allYearRes.map(r=>`<div class="ri">
-        <div><div class="rn">${r.name}</div><div class="rts">${r.type} · ${MN[r.month]} ${r.year}</div></div>
+        <div><div class="rn">${esc(r.name)}</div><div class="rts">${esc(r.type)} · ${MN[r.month]} ${r.year}</div></div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <span style="font-size:16px;font-weight:800;color:var(--g)">+${fmt(r.amount)} €</span>
           <button class="btn be" style="padding:4px 8px;font-size:11px;" onclick="editRes(${r.id})">✏️</button>
@@ -978,7 +979,7 @@ function renderCategoriesAndSubs() {
     DB.categories.map((c,i)=>`
       <div class="cat-row" style="background:var(--mist);padding:10px;border-radius:10px;border:none;display:flex;align-items:center;gap:8px;" data-i="${i}">
         <input type="color" class="cat-dot" value="${c.color}" id="cc-${c.id}" onchange="updateCatColor(${i}, this.value)" title="Couleur">
-        <input class="cat-name-input" style="background:#fff;flex:1;" type="text" value="${c.name}" id="cn-${c.id}" onchange="updateCatName(${i}, this.value)" placeholder="Nom">
+        <input class="cat-name-input" style="background:#fff;flex:1;" type="text" value="${esc(c.name)}" id="cn-${c.id}" onchange="updateCatName(${i}, this.value)" placeholder="Nom">
         <input class="cat-bud-input" style="background:#fff;width:75px;" type="number" min="0" step="10" value="${c.budget||0}" id="cb-${c.id}" placeholder="0">
         <span style="font-size:12px;color:var(--tm)">€/mois</span>
         <button class="btn bd" style="padding:6px 9px;font-size:11px;" onclick="removeCategory('${c.id}')">🗑</button>
@@ -987,7 +988,7 @@ function renderCategoriesAndSubs() {
   // 2. Abonnements
   document.getElementById('sub-list').innerHTML=DB.subscriptions.length
     ? DB.subscriptions.map(s=>`<div class="ri" style="background:#fff;border:1.5px solid var(--mistd);">
-        <div><div class="rn">${s.name}</div><div class="rts"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${getCatColor(s.cat)};margin-right:4px;"></span>${s.cat} · Depuis ${MN[s.month]} ${s.year}</div></div>
+        <div><div class="rn">${esc(s.name)}</div><div class="rts"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${getCatColor(s.cat)};margin-right:4px;"></span>${esc(s.cat)} · Depuis ${MN[s.month]} ${s.year}</div></div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <span style="font-size:16px;font-weight:800;color:var(--r)">-${fmt(s.amount)} €</span>
           <button class="btn be" style="padding:4px 8px;font-size:11px;" onclick="editSub(${s.id})">✏️</button>
@@ -1017,7 +1018,7 @@ function renderBudgetBars() {
     const pct=c.budget>0?Math.min(100,Math.round((actual/c.budget)*100)):0;
     const warn=pct>=85;
     return`<div class="pb">
-      <div class="pb-row"><span class="pb-lbl" style="color:${c.color}">● ${c.name}</span><span class="pb-val">${fmt(actual)} € / ${fmt(c.budget)} €</span></div>
+      <div class="pb-row"><span class="pb-lbl" style="color:${c.color}">● ${esc(c.name)}</span><span class="pb-val">${fmt(actual)} € / ${fmt(c.budget)} €</span></div>
       <div class="track"><div class="fill" style="width:${pct}%;background:${warn?'linear-gradient(90deg,#e0853e,#f0a860)':`linear-gradient(90deg,${c.color},${c.color}bb)`};"></div></div>
       <div style="font-size:11px;margin-top:2px;font-weight:600;color:${warn?'var(--r)':'var(--tl)'};">${pct}%${warn?' ⚠️ Proche du plafond':' utilisé'}</div>
     </div>`;
@@ -1300,7 +1301,7 @@ function buildLbDonut(month, year) {
     const total=entries.reduce((s,[,v])=>s+v,0);
     document.getElementById('lb-data').innerHTML=`
       <table class="tbl"><thead><tr><th>Catégorie</th><th>Montant</th><th>%</th></tr></thead><tbody>
-      ${entries.map(([n,v])=>`<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${getCatColor(n)};margin-right:7px;"></span><strong>${n}</strong></td><td class="an">${fmt(v)} €</td><td style="color:var(--tl);font-weight:600;">${Math.round((v/total)*100)}%</td></tr>`).join('')}
+      ${entries.map(([n,v])=>`<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${getCatColor(n)};margin-right:7px;"></span><strong>${esc(n)}</strong></td><td class="an">${fmt(v)} €</td><td style="color:var(--tl);font-weight:600;">${Math.round((v/total)*100)}%</td></tr>`).join('')}
       </tbody></table>`;
   } else {
     document.getElementById('lb-data').innerHTML=emptyHTML('Aucune dépense pour ce mois/année.','');
